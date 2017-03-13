@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Zhy的斗鱼免流</title>
+<script src="https://apps.bdimg.com/libs/jquery/2.1.1/jquery.js"></script>
+<script>
+var start=function(){
+$("#change").click(function(){
+var newroom=$("#con").val();
+if(newroom!="")
+{$("#con").val("");
+$.get("/XXXchange"+newroom+"endedXXX",function(data){$("#tip").html(data);$("#tip").show(500);
+setTimeout(function(){
+$("#tip").hide(500);},3000);})
+
+
+}
+return false;
+});
+
+
+}
+</script>
+
+</head>
+
+<body onload="start()">
+
+<video id="vd" width="100%" height="50%" controls="controls" webkit-playsinline=""><source src="playlist.m3u8"></source></video>
+<form style="text-align:center;">
+<input type="text" id="con"></input>
+<input type="submit" value="更换直播间" id="change"></input>
+<label id="tip" style="display:none;"></label>
+</form>
+</body>
+</html>
