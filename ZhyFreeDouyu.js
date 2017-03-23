@@ -551,7 +551,7 @@ toUpload.push(data);
 })
 				}
 			).on("error",(e)=>{toUpload.push(data);});
-		rq.end("data=%7B%22req_header%22%3A%7B%22cmd%22%3A2402%2C%22appid%22%3A30013%2C%22version%22%3A2%2C%22major_version%22%3A2%7D%2C%22req_body%22%3A%7B%22ReqMsg_body%22%3A%7B%22weiyun.DiskFileBatchDownloadMsgReq_body%22%3A%7B%22file_list%22%3A%5B%7B%22file_id%22%3A%22"+encodeURIComponent(fileID)+"%22%2C%22filename%22%3A%22"+(data.id)+"%22%2C%22dir_key%22%3A%22"+dir_key+"%22%7D%5D%7D%7D%7D%7D");
+		rq.end("data=%7B%22req_header%22%3A%7B%22cmd%22%3A2402%2C%22appid%22%3A30013%2C%22version%22%3A2%2C%22major_version%22%3A2%7D%2C%22req_body%22%3A%7B%22ReqMsg_body%22%3A%7B%22weiyun.DiskFileBatchDownloadMsgReq_body%22%3A%7B%22file_list%22%3A%5B%7B%22file_id%22%3A%22"+encodeURIComponent(fileID)+"%22%2C%22filename%22%3A%22"+(data.id)+"%22%2C%22pdir_key%22%3A%22"+dir_key+"%22%7D%5D%7D%7D%7D%7D");
 		}
 		
 		
