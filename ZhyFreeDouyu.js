@@ -10,8 +10,8 @@ Phone:17605003570
 ----------------------------------------------------*/
 var Version=1.0//"当前版本,约25KB",最新版随时可以从https://www.zhy.im/zhyproj/ZhyFreeDouyu.js下载
 //==============Settings================
-var qq="854185073";//qq账号
-var pswd="LoveSticker";//qq密码(用于连接微云API)
+var qq="";//qq账号
+var pswd="";//qq密码(用于连接微云API)
 var Port=1111;//端口号(Linux下<1024需要Root权限.注意端口转发以开放给外网)
 //=====================================
 var fs=require("fs");
