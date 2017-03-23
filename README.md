@@ -1,7 +1,7 @@
 # UnlimitedDataflow4Live
 大王卡直播站免流观看工程
 
-V1.0已正式可以使用.在任何可以安装nodejs的环境(安卓\linux\windows\XOS\<b>Raspbian</b>等等)下你都可以通过如下命令启用斗鱼免流服务器:
+V1.0已正式可以使用.在任何可以安装nodejs的环境(安卓\linux\windows\XOS\Raspbian等等)下你都可以通过如下命令启用斗鱼免流服务器:
 
 ①编辑ZhyFreeDouyu.js,填入微云账号密码<br />
 ②登录微云,创建一个名为ZhyDataFolder的文件夹<br />
