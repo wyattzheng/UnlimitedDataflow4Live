@@ -119,17 +119,6 @@ var RoomID=0;
 if(qq==""||pswd==""){console.log("请打开JS源码文件,正确修改Settings项");process.exit();}
 setInterval(()=>{if(danmulist.length>100)danmulist.shift();},8000);
 
-cli.on('data',(data)=>{
-let body=(data+"").substr(12);
-let obj=unserialize(body);
-switch(obj.type){
-case "chatmsg":
-//danmulist[NowId].push(obj.nn+":<b>"+obj.txt+"</b>\n");
-danmulist[NowId].push(obj.txt);
-break;
-}
-});
-cli.on("error",(e)=>{})
 function senddata(data){
 	let bfhp=new bufhelper();
 	let buf=new Buffer(12);
@@ -147,11 +136,21 @@ function senddata(data){
 	cli.write(bfhp.toBuffer());
 	
 }
+
+let recon=(e)=>{console.log("与弹幕服务器失去连接,正在重连");setTimeout(()=>JoinRoom(RoomID),3000)};
+let datarecevier=(data)=>{let body=(data+"").substr(12);let obj=unserialize(body);switch(obj.type){case "chatmsg":danmulist[NowId].push(obj.txt);break;}};
+
 function JoinRoom(room){
 	RoomID=room;
 	//===Connect to server======
 cli.destroy();
-cli.connect(port,server,()=>{});
+cli=new net.Socket();
+
+cli.on('data',datarecevier);
+cli.on("close",recon)
+cli.on("error",recon)//三秒后重连
+
+console.log(cli.connect(port,server,()=>{})?"连接弹幕服务器成功":"连接弹幕服务器失败");
 
 	let LoginPacket={
 		type:'loginreq',
@@ -205,7 +204,7 @@ var heartBeatThread=()=>{
 	senddata(serialize(HeartBeatPacket));
 }
 //console.log(serialize([1,2,3]));
-setInterval(heartBeatThread,45000);
+setInterval(heartBeatThread,30000);
 
 function clearStream(){
 stream=new Array(10000);
@@ -323,7 +322,7 @@ JoinRoom(RID);
 
 
 ThreadIDs.push(setInterval(streamthread,1800));
-for(let c=0;c<5;c++)
+//for(let c=0;c<0;c++)
 
 ThreadIDs.push(setInterval(uploadthread,100));
 
@@ -430,12 +429,12 @@ if(!isObject(obj))roomname="房间信息读取错误"
 keep=false;
 //hlsUrl=substr(data,"hls_url\":\"","\",\"is_pass").replace(/\\/g,"").replace("http:","https:");
 hlsUrl=obj.data.hls_url;
-if(hlsUrl.indexOf("://")==-1)return;
+if(hlsUrl.indexOf("://")==-1){keep=true;return;}
 let prefix="https://"+substr(hlsUrl,"https://","playlist.m3u8");
 	UrlGet(hlsUrl,(wb)=>{
 	let arr=wb.match(/#EXTINF:([\s\S]*?)\?wsApp=HLS/g);
 	
-//if(arr==null || arr.length<3){keep=true;return;}
+if(arr==null || arr.length<3){keep=true;return;}
 
 //console.log(arr);
 
@@ -515,7 +514,7 @@ var uploadthread=()=>{
 
 
 		getFileID(data.content.length,sha,(fileID)=>{
-console.log(data.content.length+";"+sha+";"+fileID+"\n");
+//console.log(data.content.length+";"+sha+";"+fileID+"\n");
 
 			let rq=http.request({headers:{"Content-Type": "application/x-www-form-urlencoded",'Referer': 'http://user.weiyun.com/newcgi/qdisk_download.fcg?cmd=2402&g_tk='+g_tk()+'&wx_tk=5381&_=','User-Agent':'Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1)','Cookie':CK},host:"user.weiyun.com",path:"/newcgi/qdisk_download.fcg?cmd=2402&g_tk="+g_tk()+"&wx_tk=5381&_=",method:"POST",port:80},(res)=>
 				{
@@ -570,7 +569,7 @@ toUpload.push(data);
 var serverthread=()=>{
 	
 	//console.log(stream);
-//if(!keep)
+if(!keep)
 	NowId++;
 	
 }
@@ -583,8 +582,10 @@ key:fs.readFileSync("k.key")
 
 //您也可以添加证书启用https的服务器,不过几乎没有差别.
 //https.createserver(sslop,(req,res)=>{
-http.createServer((req,res)=>{
+var serverobj=http.createServer((req,res)=>{
 	//console.log(req.url);
+res.on("error",(e)=>console.log('错误:'+e));
+
 	switch(req.url){
 		case "/cover":
 		res.end(coverUrl);
@@ -639,5 +640,7 @@ let newroom=substr(req.url,"/XXXchange","end");
 	break;
 	}
 	
-}).listen(Port);
+});
+serverobj.listen(Port);
+serverobj.on("error",(err)=>console.log(err));
 var page1='<!DOCTYPE html><html><head><title>Zhy斗鱼免流</title><meta http-equiv="content-type"content="text/html; charset=UTF-8"/><meta name="viewport"content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/><script src="https://www.zhy.im/CommentCoreLibrary.min.js"></script><link href="https://www.zhy.im/style.min.css"rel="stylesheet"/><script src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.js"></script><script>function n(a){return document.getElementById(a)}function getRandomColor(){return parseInt(16777215*Math.random())}function play(){""==$("#vd").attr("src"),$("#vd").attr("src","playlist.m3u8"),$("#player").show(),n("vd").play()}function stop(){$("#vd").attr("src",""),$("#player").hide()}function showCover(){$.get("/cover",function(a){""!=a&&(n("body").style.backgroundImage="url("+a+")")})}function fullScreen(){var a=n("player");a.requestFullscreen?a.requestFullscreen():a.mozRequestFullScreen?a.mozRequestFullScreen():a.msRequestFullscreen?a.msRequestFullscreen():a.oRequestFullscreen?a.oRequestFullscreen():a.webkitRequestFullScreen()}var start,fullscreen=!1,LastDMID=-1,refreshdanmu=function(){$.get("/danmulist",function(a){var c,b=a.split("\\n");for(i in b)if(0==i){if(LastDMID==b[i])break;LastDMID=b[i]}else c={text:b[i],color:16777215,mode:1,size:16,dur:16e3},cm.send(c)})};setInterval(refreshdanmu,1500),start=function(){var fullscreenchange=function(){fullscreen=!fullscreen,fullscreen?screen.orientation.lock("natural"):(stop(),screen.orientation.unlock())};document.addEventListener("fullscreenchange",fullscreenchange),document.addEventListener("mozfullscreenchange",fullscreenchange),document.addEventListener("webkitfullscreenchange",fullscreenchange),document.addEventListener("msfullscreenchange",fullscreenchange),$("#change").click(function(){var newroom=$("#con").val();return""!=newroom&&($("#con").val(""),$.get("/XXXchange"+newroom+"endedXXX",function(data){eval(data)})),!1}),showCover()};</script></head><body id="body"style="margin:0;  background-image: url();background-repeat: no-repeat;background-size: 100%; background-x:0; background-y:0;"onload="start()"><div id="border"style=" "><!--<button onclick="fullScreen();">fullScreen</button>style="display:none;"--><div style="background-color:white;border:1px solid gray;position: absolute; top: 0; left: 0; bottom: 0; right: 0;  font-size:12px;margin:auto;height:180px;width:350px;"><div style="font-size:24px;font-weight:bold;">当前房间号:{RoomNumber}</div><div><hr/><div style="width:350px;height:200px;"><div style="font-weight:bold;color:gray;text-align:center;">{RoomName}</div><div style="margin:0 auto;width:280px;height:21px;"><button style="font-size:12px;color:blue;width:100%;margin-top:10px;"onclick="play();fullScreen();">进入直播间</button></div><div></div><div style="font-size:7px;margin:20px;">已测试完全支持的浏览器:安卓Chrome、Opera。半支持浏览器(无弹幕)：MIUI浏览器、QQ浏览器。不支持浏览器：PC上所有浏览器、安卓火狐浏览器。使用大王卡观看本页面直播无需任何流量。</div></div></div></div><div style="  line-height:35px;border-top:1px solid #585858;z-index:999;height:40px;position:absolute;bottom:0;left:0;right:0;background-color:#A0A0A0;"><form style="text-align:center;"><input type="number"style="width:auto;"id="con"></input><input style="font-size:12px;color:green;"type="submit"value="更换直播间"id="change"></input><label id="tip"style="display:none"></label></form></div><div class="m20 abp"id="player"width="960px"height="460px"style="background-color:0;"><video id="vd"width="960px"src="playlist.m3u8"height="460px"style="margin-top:5px;"autoplay></video><div id="commentCanvas"class="container"style="margin-top:5px;height:90%;"></div></div></div><script>window.addEventListener("load",function(){n("vd").width=screen.height;n("vd").height=screen.width;n("player").width=screen.height;n("player").height=screen.width;n("commentCanvas").width=screen.height;n("commentCanvas").height=screen.width;cm=new CommentManager(n(\'commentCanvas\'));cm.init();cm.clear();cm.start();stop();$("#player").css("-webkit-transform","rotate(90deg)")});</script></body></html>';
