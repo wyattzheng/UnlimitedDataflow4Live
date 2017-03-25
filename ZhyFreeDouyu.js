@@ -148,8 +148,8 @@ cli.destroy();
 cli=new net.Socket();
 
 cli.on('data',datarecevier);
-cli.on("close",recon)
-cli.on("error",recon)//三秒后重连
+cli.on("close",recon)//三秒后重连
+//cli.on("error",recon)
 
 console.log(cli.connect(port,server,()=>{})?"连接弹幕服务器成功":"连接弹幕服务器失败");
 
