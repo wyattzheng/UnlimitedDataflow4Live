@@ -272,6 +272,7 @@ pro.get(options,(res)=>{
 	//console.log(res.headers);
 let buf=new bufhelper();
 res.on("data",(c)=>buf.concat(c));
+res.on("error",(err)=>console.log(err));
 let cok="";
 let tmparr={};
 for(c in res.headers['set-cookie']){
