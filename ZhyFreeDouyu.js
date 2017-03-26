@@ -56,14 +56,18 @@ function getDirKey(dirname,callback){//FromMainDir
 			//console.log(obj);
 			if(!isObject(obj)||!isObject(obj.rsp_body.RspMsg_body['weiyun.DiskDirBatchListMsgRsp_body'])){console.log("错误:请检查微云目录下是否存在需要的"+dirname+"数据目录");process.exit();return;}
 			let ListArr=obj.rsp_body.RspMsg_body['weiyun.DiskDirBatchListMsgRsp_body'].dir_list;
-			for(i in ListArr){
-				//console.log(ListArr[i].dir_list);
-				if(ListArr[i].dir_list[0]['dir_name']==dirname){
-				callback(ListArr[i].dir_list[0]['dir_key']);
+console.log(ListArr);		
+
+	for(i in ListArr[0].dir_list){
+				console.log(ListArr[0].dir_list[i]['dir_name']);
+				if(ListArr[0].dir_list[i]['dir_name']==dirname){
+				callback(ListArr[0].dir_list[i]['dir_key']);
 				return;
 				}
 			}
-		console.log("错误:请检查微云目录下是否存在需要的"+dirname+"数据目录");process.exit();return;
+		console.log("错误:请检查微云目录下是否存在需要的"+dirname+"数据目录");
+//process.exit();
+return;
 		},"",CK);
 	},"",CK)
 	
@@ -254,22 +258,32 @@ let pro;
 if(url.indexOf("https://")!=-1)
 pro=https; else pro=http;
 
-var options=U.parse(url);
+let options=U.parse(url);
+//console.log(options);
+//console.log(options.query.length);
+
+//let len=options.query.length;
 
 	 options.headers={
+		 "Host":options.host,
 	  "Cache-Control": "no-cache",
 	  "Connection": "close",
 	   "Content-Type": "application/x-www-form-urlencoded",
-	  "User-Agent": "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)",
+	  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36",
 	  //非浏览器Agent,斗鱼不会正常返回直播视频地址,这招有点6
 	   "Referer":url,
-"X-Requested-With":"XMLHttpRequest"
+	  "X-Requested-With":"XMLHttpRequest",
+	  
+//'Content-Length':len
+
+
 	 }
+	 //console.log(options);
 	 if(typeof cookie!="undefined" && cookie!="")
 	 options.headers["Cookie"]=cookie;
  //console.log(options);
  
-pro.get(options,(res)=>{
+var requ=pro.get(options,(res)=>{
 	//console.log(res.headers);
 let buf=new bufhelper();
 res.on("data",(c)=>buf.concat(c));
@@ -297,7 +311,10 @@ for(c in tmparr)
 	cok+=c+"="+tmparr[c]+";"
 
 res.on("end",()=>end(bin?buf.toBuffer():buf.toBuffer().toString(),str,cok));
-}).on("error",(e)=>{
+});
+//setTimeout(()=>{requ.abort();},5000);
+
+requ.on("error",(e)=>{
 console.log("错误:"+e+"\n");
 });
 
@@ -325,12 +342,14 @@ JoinRoom(RID);
 
 
 ThreadIDs.push(setInterval(streamthread,1800));
-//for(let c=0;c<0;c++)
+//for(let c=0;c<2;c++)
 
-ThreadIDs.push(setInterval(uploadthread,400));
+ThreadIDs.push(setInterval(uploadthread,1200));
 
 
-ThreadIDs.push(setTimeout(()=>{ThreadIDs.push(setInterval(serverthread,3000));ThreadIDs.push(setInterval(cleanthread,3000));},36000));
+ThreadIDs.push(setTimeout(()=>{ThreadIDs.push(setInterval(serverthread,3000));
+ThreadIDs.push(setInterval(cleanthread,3000));
+},36000));
 	
 }
 //UrlGet("http://www.baidu.com/",()=>{});
@@ -404,6 +423,10 @@ for(x in toclean)	{
 function Unn(source){
 	return unescape(source.replace(/\\/g,'%'));	
 };
+function isJson(obj){
+var isjson = typeof(obj) == "object" && Object.prototype.toString.call(obj).toLowerCase() == "[object object]" && !obj.length; 
+return isjson;
+}
 function getRoomInfo(func){
 	
 https.get("https://m.douyu.com/html5/live?roomId="+RID,
@@ -412,6 +435,7 @@ https.get("https://m.douyu.com/html5/live?roomId="+RID,
 res.on('data',(c)=>data+=c);
 res.on('error',(err)=>console.log(err));
 res.on('end',()=>{
+	if(isJson)
 func(JSON.parse(data));
 	
 	});
@@ -453,7 +477,7 @@ if(arr==null || arr.length<3){keep=true;return;}
 QueueId++;
 
 		UrlGet(tsUrl,(tsData,qn)=>{
-			let name=randomstr().substr(0,7)+'.mp4';
+			let name=randomstr().substr(0,7)+'.ts';
 			toUpload.push({"qid":qn,"id":name,"content":tsData});
 			console.log("提交上传:ID="+qn+",name="+name);
 		},QueueId,"",true);
@@ -471,6 +495,8 @@ QueueId++;
 	
 };
 var uploadthread=()=>{
+//	var success=true;
+
 	let data=toUpload.shift();
 	if((typeof data)=="undefined")return;
 	let sha=sha1(data.content);
@@ -518,42 +544,45 @@ var uploadthread=()=>{
 
 
 		getFileID(data.content.length,sha,(fileID)=>{
-//console.log(data.content.length+";"+sha+";"+fileID+"\n");
+console.log(data.qid+";"+data.content.length+";"+sha+";"+fileID+"\n");
 
 			let rq=http.request({headers:{"Content-Type": "application/x-www-form-urlencoded",'Referer': 'http://user.weiyun.com/newcgi/qdisk_download.fcg?cmd=2402&g_tk='+g_tk()+'&wx_tk=5381&_=','User-Agent':'Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1)','Cookie':CK},host:"user.weiyun.com",path:"/newcgi/qdisk_download.fcg?cmd=2402&g_tk="+g_tk()+"&wx_tk=5381&_=",method:"POST",port:80},(res)=>
 				{
 					let ddd;
-res.on("end",()=>{			//downloadCookie="FTN5K="+substr(ddd+"","cookie_value\":\"","\"")+";"
-downloadCookie="FTN5K=6d02977e;"
+res.on("end",()=>{			downloadCookie="FTN5K="+substr(ddd+"","cookie_value\":\"","\"")+";"
+//downloadCookie="FTN5K=6d02977e;"
+
 				//	downloadLink="https://sh-btfs-v2-yun-ftn.weiyun.com"+substr(ddd+"","http://sh-btfs-v2.yun.ftn.qq.com:80","?fname=");
    downloadLink="http://sh-btfs-v2-yun-ftn.weiyun.com"+substr(ddd+"","http://sh-btfs-v2.yun.ftn.qq.com:80","?fname=");
 
-
-		if((ddd+"").indexOf("http://sh-btfs-v2.yun.ftn.qq.com")==-1)
-toUpload.push(data);
+		if((ddd+"").indexOf("qq.com")==-1)
+success=false
 else
 				{
+console.log('已推流ID:'+data.qid+"\n");
 	stream[data.qid]=[downloadLink,downloadCookie];
 					let garbage={
 						fileid:fileID,
 						filename:data.id,
 						timeout:NowId
 					}
-	toclean.push(garbage);}
+	toclean.push(garbage);
+return;
+}
 	})
 					res.on("data",(s)=>{
 						ddd+=s;
 			
 	
 					});
-res.on("error",(e)=>{toUpload.push(data);});
+res.on("error",(e)=>{console.log(e);toUpload.push(data);});
 					res.on("end",()=>{
 if(typeof stream[data.qid]=="undefined" || stream[data.qid]=="")//上传失败
-toUpload.push(data);
+success=false;
 
 })
 				}
-			).on("error",(e)=>{toUpload.push(data);});
+			).on("error",(e)=>{console.log(e);toUpload.push(data);});
 		rq.end("data=%7B%22req_header%22%3A%7B%22cmd%22%3A2402%2C%22appid%22%3A30013%2C%22version%22%3A2%2C%22major_version%22%3A2%7D%2C%22req_body%22%3A%7B%22ReqMsg_body%22%3A%7B%22weiyun.DiskFileBatchDownloadMsgReq_body%22%3A%7B%22file_list%22%3A%5B%7B%22file_id%22%3A%22"+encodeURIComponent(fileID)+"%22%2C%22filename%22%3A%22"+(data.id)+"%22%2C%22pdir_key%22%3A%22"+dir_key+"%22%7D%5D%7D%7D%7D%7D");
 		}
 		
@@ -567,7 +596,7 @@ toUpload.push(data);
 
 		req.write(bin);
 		req.end();
-		req.on('error',(e)=>{console.log("错误:"+e+"\n")});
+		req.on('error',(e)=>{toUpload.push(data);console.log("错误:"+e+"\n")});
 	},data.qid,CK);
 }
 var serverthread=()=>{
