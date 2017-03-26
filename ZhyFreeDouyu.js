@@ -35,6 +35,8 @@ var coverUrl="";
 var keep=false;
 var toclean=[];
 var danmulist=[];
+var roominfocache=[];
+var playing=false;
 for(let x=0;x<100000;x++)danmulist.push([]);
 var dir_key="";
 var roomname="请指定一个房间号";
@@ -52,6 +54,9 @@ function getDirKey(dirname,callback){//FromMainDir
 			
 			
 			//console.log(json);
+			if(!isJson(json))callback("error");
+			
+		
 			let obj=JSON.parse(json);
 			//console.log(obj);
 			if(!isObject(obj)||!isObject(obj.rsp_body.RspMsg_body['weiyun.DiskDirBatchListMsgRsp_body'])){console.log("错误:请检查微云目录下是否存在需要的"+dirname+"数据目录");process.exit();return;}
@@ -66,7 +71,7 @@ console.log(ListArr);
 				}
 			}
 		console.log("错误:请检查微云目录下是否存在需要的"+dirname+"数据目录");
-//process.exit();
+process.exit();
 return;
 		},"",CK);
 	},"",CK)
@@ -98,9 +103,18 @@ var CookieUpdater=()=>{
 		
 		
 getDirKey(DataFolder,(key)=>{
+	if(key=="error")
+	{
+		if(dir_key!="")
+			console.log("数据目录"+DataFolder+"延续上一次获取的Dir_key:"+key+"\n");
+		else
+		{console.log("错误:数据目录"+DataFolder+"获取失败.");
+process.exit();}
+	}
+else{
 	dir_key=key;
 	console.log("数据目录"+DataFolder+"的Dir_Key获取成功:"+key+"\n");
-	
+}
 });
 
 		console.log("================================================================================\nCookie更新成功:"+CK+"\n================================================================================\n");
@@ -347,7 +361,10 @@ ThreadIDs.push(setInterval(streamthread,1800));
 ThreadIDs.push(setInterval(uploadthread,1200));
 
 
-ThreadIDs.push(setTimeout(()=>{ThreadIDs.push(setInterval(serverthread,3000));
+playing=false;
+ThreadIDs.push(setTimeout(()=>{
+playing=true;
+ThreadIDs.push(setInterval(serverthread,3000));
 ThreadIDs.push(setInterval(cleanthread,3000));
 },36000));
 	
@@ -423,11 +440,19 @@ for(x in toclean)	{
 function Unn(source){
 	return unescape(source.replace(/\\/g,'%'));	
 };
-function isJson(obj){
-var isjson = typeof(obj) == "object" && Object.prototype.toString.call(obj).toLowerCase() == "[object object]" && !obj.length; 
-return isjson;
+function isJson(json){
+
+      
+   try {    
+        JSON.parse(json);  
+       return true;    
+   } catch (e) {   
+       return false;    
+   }    
+
 }
 function getRoomInfo(func){
+
 	
 https.get("https://m.douyu.com/html5/live?roomId="+RID,
 	(res)=>{
@@ -435,11 +460,18 @@ https.get("https://m.douyu.com/html5/live?roomId="+RID,
 res.on('data',(c)=>data+=c);
 res.on('error',(err)=>console.log(err));
 res.on('end',()=>{
-	if(isJson)
-func(JSON.parse(data));
-	
-	});
-}).on('error',(err)=>console.log(err));;
+	if(isJson){
+			roominfocache[RID+""]=JSON.parse(data);
+	func(roominfocache[RID+""]);
+	}else {
+		if(roominfocache[RID+""])
+			func(roominfocache[RID+""])
+		else keep=true;
+		
+		}
+}
+	);
+}).on('error',(err)=>{/*console.log(err);*/if(roominfocache[RID+""])func(roominfocache[RID+""]); else keep=true;});;
 }
 function isObject(obj){
 	return (obj && typeof obj!="undefined" && obj!="undefined" && obj!="");
@@ -477,7 +509,7 @@ if(arr==null || arr.length<3){keep=true;return;}
 QueueId++;
 
 		UrlGet(tsUrl,(tsData,qn)=>{
-			let name=randomstr().substr(0,7)+'.ts';
+			let name=randomstr().substr(0,7)+'.mp4';
 			toUpload.push({"qid":qn,"id":name,"content":tsData});
 			console.log("提交上传:ID="+qn+",name="+name);
 		},QueueId,"",true);
@@ -556,7 +588,7 @@ res.on("end",()=>{			downloadCookie="FTN5K="+substr(ddd+"","cookie_value\":\"","
    downloadLink="http://sh-btfs-v2-yun-ftn.weiyun.com"+substr(ddd+"","http://sh-btfs-v2.yun.ftn.qq.com:80","?fname=");
 
 		if((ddd+"").indexOf("qq.com")==-1)
-success=false
+toUpload.push(data);
 else
 				{
 console.log('已推流ID:'+data.qid+"\n");
@@ -578,8 +610,7 @@ return;
 res.on("error",(e)=>{console.log(e);toUpload.push(data);});
 					res.on("end",()=>{
 if(typeof stream[data.qid]=="undefined" || stream[data.qid]=="")//上传失败
-success=false;
-
+toUpload.push(data);
 })
 				}
 			).on("error",(e)=>{console.log(e);toUpload.push(data);});
@@ -658,7 +689,7 @@ break;
 case "/":
 	res.writeHead(200,{'Set-Cookie':"FTN5K=6d02977e;",'Content-type':'text/html'});
 	
-	res.end((page1+"").replace("{RoomNumber}",RID+"").replace("{RoomName}",roomname).replace("NeedPassword",roomkey==""?"false":"true"));
+	res.end((page1+"").replace("{RoomNumber}",RID+"").replace("{RoomName}",roomname).replace("NeedPassword",roomkey==""?"false":"true").replace("{disabled}",playing?"":"disabled"));
 break;	
 	default:
 	if(req.url.indexOf("/XXXchange")==0){
@@ -680,4 +711,4 @@ break;
 });
 serverobj.listen(Port);
 serverobj.on("error",(err)=>console.log(err));
-var page1="<!DOCTYPE html><html><head><title>Zhy斗鱼免流<\/title><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"><meta name=\"viewport\" content=\"width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no\"><script src=\"https://www.zhy.im/CommentCoreLibrary.min.js\"><\/script><link href=\"https://www.zhy.im/style.min.css\" rel=\"stylesheet\"><script src=\"https://apps.bdimg.com/libs/jquery/2.1.1/jquery.js\"><\/script><script>function n(e){return document.getElementById(e)}function getRandomColor(){return parseInt(16777215*Math.random())}function play(){\"\"==$(\"#vd\").attr(\"src\"),$(\"#vd\").attr(\"src\",\"playlist.m3u8\"),$(\"#player\").show(),n(\"vd\").play()}function stop(){$(\"#vd\").attr(\"src\",\"\"),$(\"#player\").hide()}function showCover(){$.get(\"/cover\",function(e){\"\"!=e&&(n(\"body\").style.backgroundImage=\"url(\"+e+\")\")})}function fullScreen(){var e=n(\"player\");e.requestFullscreen?e.requestFullscreen():e.mozRequestFullScreen?e.mozRequestFullScreen():e.msRequestFullscreen?e.msRequestFullscreen():e.oRequestFullscreen?e.oRequestFullscreen():e.webkitRequestFullScreen()}var fullscreen=!1,LastDMID=-1,refreshdanmu=function(){$.get(\"/danmulist\",function(e){var n=e.split(\"\\n\");for(i in n)if(0==i){if(LastDMID==n[i])break;LastDMID=n[i]}else{var r={text:n[i],color:16777215,mode:1,size:16,dur:16e3};cm.send(r)}})};setInterval(refreshdanmu,1500);var start=function(){var fullscreenchange=function(){fullscreen=!fullscreen,fullscreen?screen.orientation.lock(\"natural\"):(stop(),screen.orientation.unlock())};document.addEventListener(\"fullscreenchange\",fullscreenchange),document.addEventListener(\"mozfullscreenchange\",fullscreenchange),document.addEventListener(\"webkitfullscreenchange\",fullscreenchange),document.addEventListener(\"msfullscreenchange\",fullscreenchange),$(\"#change\").click(function(){var newroom=$(\"#con\").val();return\"\"!=newroom&&($(\"#con\").val(\"\"),$.get(\"/XXXchange\"+newroom+\"|\"+(NeedPassword?prompt(\"请输入更改房间号需要的密码\\n密码可以在后台更改\",\"\"):\"\")+\"endedXXX\",function(data){eval(data)})),!1}),showCover()};<\/script><\/head><body id=\"body\" style=\"margin:0;background-image:url();background-repeat:no-repeat;background-size:100%;background-x:0;background-y:0\" onload=\"start()\"><div id=\"border\" style=\"\"><div style=\"background-color:#fff;border:1px solid gray;position:absolute;top:0;left:0;bottom:0;right:0;font-size:12px;margin:auto;height:180px;width:350px\"><div style=\"font-size:24px;font-weight:bold\">当前房间号:{RoomNumber}<\/div><div><hr><div style=\"width:350px;height:200px\"><div style=\"font-weight:700;color:gray;text-align:center\">{RoomName}<\/div><div style=\"margin:0 auto;width:280px;height:21px\"><button style=\"font-size:12px;color:#00f;width:100%;margin-top:10px\" onclick=\"play(),fullScreen()\">进入直播间<\/button><\/div><div><\/div><div style=\"font-size:7px;margin:20px\">已测试完全支持的浏览器:安卓Chrome、Opera。半支持浏览器(无弹幕)：MIUI浏览器、QQ浏览器。不支持浏览器：PC上所有浏览器、安卓火狐浏览器。使用大王卡观看本页面直播无需任何流量。<\/div><\/div><\/div><\/div><div style=\"line-height:35px;border-top:1px solid #585858;z-index:999;height:40px;position:absolute;bottom:0;left:0;right:0;background-color:#a0a0a0\"><form style=\"text-align:center\"><input type=\"number\" style=\"width:auto\" id=\"con\"><input style=\"font-size:12px;color:green\" type=\"submit\" value=\"更换直播间\" id=\"change\"><label id=\"tip\" style=\"display:none\"><\/label><\/form><\/div><div class=\"m20 abp\" id=\"player\" width=\"960px\" height=\"460px\" style=\"background-color:0\"><video id=\"vd\" width=\"960px\" src=\"playlist.m3u8\" height=\"460px\" style=\"margin-top:5px\" autoplay><\/video><div id=\"commentCanvas\" class=\"container\" style=\"margin-top:5px;height:90%\"><\/div><\/div><\/div><script>window.addEventListener(\"load\",function(){n(\"vd\").width=screen.height,n(\"vd\").height=screen.width,n(\"player\").width=screen.height,n(\"player\").height=screen.width,n(\"commentCanvas\").width=screen.height,n(\"commentCanvas\").height=screen.width,cm=new CommentManager(n(\"commentCanvas\")),cm.init(),cm.clear(),cm.start(),stop(),$(\"#player\").css(\"-webkit-transform\",\"rotate(90deg)\")});<\/script><\/body><\/html>\n";
+var page1=fs.readFileSync("page","utf-8");

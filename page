@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Zhy斗鱼免流</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<script src="https://www.zhy.im/CommentCoreLibrary.min.js"></script>
+<link href="https://www.zhy.im/style.min.css" rel="stylesheet" />
+<script src="https://apps.bdimg.com/libs/jquery/2.1.1/jquery.js"></script>
+<script>
+var fullscreen=false;
+var LastDMID=-1;
+var danmubuffer=[];
+var paused=true;
+var interval=0;
+
+
+  function n(id){
+    	return document.getElementById(id);
+    }
+
+function onpaused(){
+	cm.stop();
+	paused=true;
+
+	interval=setInterval(function(){if(!n("vd").paused)onplay();},200)
+}
+function onplay(){
+cm.start();
+paused=false;
+clearInterval(interval);
+}
+function getRandomColor(){ 
+return parseInt(Math.random()*16777215); 
+}
+function play(){
+
+if($("#vd").attr("src")=="");
+$("#vd").attr("src","playlist.m3u8");
+
+$("#player").show();
+n("vd").play();
+paused=false;
+}
+function stop(){
+$("#vd").attr("src","");
+
+$("#player").hide();
+danmubuffer=[];
+paused=true;
+}
+var showdanmu=function(){
+if(!paused){
+var a=danmubuffer.shift();
+
+for(i in a){
+cm.send(a[i]);
+}
+
+}
+}
+var refreshdanmu=function(){
+//alert(n("vd").paused);
+
+$.get("/danmulist",function(danmulist){
+var dmarr=danmulist.split("\n");
+var dma=[];
+for(i in dmarr){
+if(i==0){
+if(LastDMID==dmarr[i])break;
+	LastDMID=dmarr[i];
+}else{
+var dm={
+text:dmarr[i],
+color:16777215,
+mode:1,
+size:16,
+dur:16000
+}
+dma.push(dm);
+}
+}
+console.log(dma.length);
+if(dma.length>0)
+danmubuffer.push(dma);
+});
+
+
+};
+setInterval(refreshdanmu,1500);
+setInterval(showdanmu,1500);
+
+function toggleplay(){
+if(n('vd').paused)n('vd').play()
+else
+n('vd').pause();
+}
+function showCover(){
+$.get("/cover",function(url){
+if(url!="")
+n("body").style.backgroundImage="url("+url+")";
+
+});
+
+}
+var start=function(){
+
+if("{disabled}"=="disabled"){
+setTimeout(function(){window.location.reload()},2000);
+}else{
+n('ent').disabled="";
+n('ent').style.color="blue";
+}
+var fullscreenchange=function(e){
+fullscreen=!fullscreen;
+if(!fullscreen){stop();screen.orientation.unlock();
+}else screen.orientation.lock("natural");
+
+
+}
+document.addEventListener("fullscreenchange",fullscreenchange);
+document.addEventListener("mozfullscreenchange", fullscreenchange);
+document.addEventListener("webkitfullscreenchange", fullscreenchange);
+document.addEventListener("msfullscreenchange", fullscreenchange);
+
+$("#change").click(function(){
+var newroom=$("#con").val();
+if(newroom!="")
+{$("#con").val("");
+$.get("/XXXchange"+newroom+"|"+((NeedPassword)?prompt("请输入更改房间号需要的密码\n密码可以在后台更改",""):"")+"endedXXX",function(data){
+eval(data);
+});
+}
+
+return false;
+});
+showCover();
+
+}
+
+
+	function fullScreen(){
+	var element=n('player');
+	
+	if(element.requestFullscreen) {
+element.requestFullscreen();
+} else if(element.mozRequestFullScreen) {
+element.mozRequestFullScreen();
+} else if(element.msRequestFullscreen){ 
+element.msRequestFullscreen(); 
+} else if(element.oRequestFullscreen){
+element.oRequestFullscreen();
+}
+else 
+element.webkitRequestFullScreen();
+
+	}
+
+</script>
+
+</head>
+
+
+
+<body id="body" style="margin:0;  background-image: url();background-repeat: no-repeat;background-size: 100%; background-x:0; background-y:0;" onload="start()">
+<div id="border" style=" ">
+<div style="background-color:white;border:1px solid gray;position: absolute; top: 0; left: 0; bottom: 0; right: 0;  font-size:12px;margin:auto;height:180px;width:350px;"> <div style="font-size:24px;font-weight:bold;">当前房间号:{RoomNumber}</div>
+<div>
+<hr />
+<div style="width:350px;height:200px;">
+
+<div style="font-weight:bold;color:gray;text-align:center;">{RoomName}</div>
+
+<div style="margin:0 auto;width:280px;height:21px;"><button disabled id="ent" style="font-size:12px;color:gray;width:100%;margin-top:10px;" onclick="play();fullScreen();">进入直播间</button></div>
+<div>
+
+</div>
+<div style="font-size:7px;margin:20px;">已测试完全支持的浏览器:安卓Chrome、Opera。半支持浏览器(无弹幕)：MIUI浏览器、QQ浏览器。不支持浏览器：PC上所有浏览器、安卓火狐浏览器。使用大王卡观看本页面直播无需任何流量。</div>
+</div>
+</div>
+</div>
+
+<div style="  line-height:35px;border-top:1px solid #585858;z-index:999;height:40px;position:absolute;bottom:0;left:0;right:0;background-color:#A0A0A0;">
+<form style="text-align:center;">
+<input type="number" style="width:auto;" id="con"></input>
+<input style="font-size:12px;color:green;" type="submit" value="更换直播间" id="change" ></input>
+<label id="tip" style="display:none"></label>
+</form>
+</div>
+<div class="m20 abp" id="player" width="960px" height="460px" style="background-color:0;">
+<video id="vd" onplay="onplay()" onpause="onpaused()" width="960px" src="playlist.m3u8" height="460px" style="margin-top:5px;" autoplay>
+</video>
+<div onclick="toggleplay()" id="commentCanvas" class="container" style="margin-top:5px;height:90%;"></div>
+</div>
+
+
+</div>
+<script>
+	window.addEventListener("load",function(){
+	n("vd").width=screen.height;
+	n("vd").height=screen.width;
+
+	n("player").width=screen.height;
+	n("player").height=screen.width;
+	
+	n("commentCanvas").width=screen.height;
+	n("commentCanvas").height=screen.width;
+		cm = new CommentManager(n('commentCanvas'));
+		cm.init();
+		cm.clear();
+		cm.start();
+		stop();
+
+	$("#player").css("-webkit-transform","rotate(90deg)");
+	});
+</script>
+
+</body>
+</html>
